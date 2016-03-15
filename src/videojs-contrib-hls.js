@@ -588,6 +588,7 @@ export default class HlsHandler extends Component {
   setupFirstPlay() {
     let seekable;
     let media = this.playlists.media();
+    var firstSegmentIndex = 0;
 
     // check that everything is ready to begin buffering
     // 1) the video is a live stream of unknown duration
@@ -608,24 +609,21 @@ export default class HlsHandler extends Component {
 
         // trigger the playlist loader to start "expired time"-tracking
         this.playlists.trigger('firstplay');
-    } else {
-      var firstSegmentIndex = 0;
-
-      if (media !== undefined) {
-        var tailLength = parseInt(videojs.Hls.GOAL_BUFFER_LENGTH / media.targetDuration);
-
-        if (tailLength < 3) {
-          tailLength = 3;
+      } else {
+        if (media !== undefined) {
+          var tailLength = parseInt(videojs.Hls.GOAL_BUFFER_LENGTH / media.targetDuration);
+  
+          if (tailLength < 3) {
+            tailLength = 3;
+          }
+  
+          firstSegmentIndex = media.segments.length - tailLength;
+          seekable = this.seekable();
+          this.tech_.setCurrentTime(seekable.start(0));
         }
-
-        firstSegmentIndex = media.segments.length - tailLength;
-        seekable = this.seekable();
-        this.tech_.setCurrentTime(seekable.start(0));
       }
-
-      return (firstSegmentIndex > 0 ? firstSegmentIndex : 0);
     }
-
+    return (firstSegmentIndex > 0 ? firstSegmentIndex : 0);
   }
 
   /**
