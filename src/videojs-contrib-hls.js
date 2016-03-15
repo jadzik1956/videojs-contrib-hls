@@ -606,8 +606,9 @@ export default class HlsHandler extends Component {
         // at least HAVE_FUTURE_DATA
         this.tech_.readyState() >= 1) {
 
-        // trigger the playlist loader to start "expired time"-tracking
-        this.playlists.trigger('firstplay');
+          // trigger the playlist loader to start "expired time"-tracking
+          this.playlists.trigger('firstplay')
+      }
     } else {
       var firstSegmentIndex = 0;
 
