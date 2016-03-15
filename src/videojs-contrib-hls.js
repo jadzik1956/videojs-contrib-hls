@@ -24,7 +24,7 @@ const Hls = {
 };
 
 // the desired length of video to maintain in the buffer, in seconds
-Hls.GOAL_BUFFER_LENGTH = 30;
+Hls.GOAL_BUFFER_LENGTH = 60;
 
 // HLS is a source handler, not a tech. Make sure attempts to use it
 // as one do not cause exceptions.
@@ -432,8 +432,8 @@ export default class HlsHandler extends Component {
       }
 
       this.setupSourceBuffer_();
-      this.setupFirstPlay();
-      this.fillBuffer();
+      var firstSegmentIndexToBePlayed = this.setupFirstPlay();
+      this.fillBuffer(firstSegmentIndexToBePlayed);
       this.tech_.trigger('loadedmetadata');
     });
 
@@ -590,13 +590,11 @@ export default class HlsHandler extends Component {
     let media = this.playlists.media();
 
     // check that everything is ready to begin buffering
-
     // 1) the video is a live stream of unknown duration
-    if (this.duration() === Infinity &&
+    if (this.duration() === Infinity) {
 
-        // 2) the player has not played before and is not paused
-        this.tech_.played().length === 0 &&
-        !this.tech_.paused() &&
+      // 2) the player has not played before and is not paused
+      if (this.tech_.played().length === 0 && !this.tech_.paused() &&
 
         // 3) the Media Source and Source Buffers are ready
         this.sourceBuffer &&
@@ -608,15 +606,26 @@ export default class HlsHandler extends Component {
         // at least HAVE_FUTURE_DATA
         this.tech_.readyState() >= 1) {
 
-      // trigger the playlist loader to start "expired time"-tracking
-      this.playlists.trigger('firstplay');
+        // trigger the playlist loader to start "expired time"-tracking
+        this.playlists.trigger('firstplay');
+    } else {
+      var firstSegmentIndex = 0;
 
-      // seek to the latest media position for live videos
-      seekable = this.seekable();
-      if (seekable.length) {
-        this.tech_.setCurrentTime(seekable.end(0));
+      if (media !== undefined) {
+        var tailLength = parseInt(videojs.Hls.GOAL_BUFFER_LENGTH / media.targetDuration);
+
+        if (tailLength < 3) {
+          tailLength = 3;
+        }
+
+        firstSegmentIndex = media.segments.length - tailLength;
+        seekable = this.seekable();
+        this.tech_.setCurrentTime(seekable.start(0));
       }
+
+      return (firstSegmentIndex > 0 ? firstSegmentIndex : 0);
     }
+
   }
 
   /**
