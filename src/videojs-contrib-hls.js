@@ -256,7 +256,8 @@ const updateSegmentMetadata = function(playlist, segmentIndex, segmentEnd) {
  * @param mediaSource {object} the MediaSource object
  * @param segmentIndex {number} the index of segment we last appended
  * @param currentBuffered {object} the buffered region that currentTime resides in
- * @return {boolean} whether the calling function should call endOfStream on the MediaSource
+ * @return {boolean} whether the calling function
+ * should call endOfStream on the MediaSource
  */
 const detectEndOfStream = function(playlist, mediaSource, segmentIndex, currentBuffered) {
   if (!playlist) {
@@ -398,6 +399,7 @@ export default class HlsHandler extends Component {
   }
   src(src) {
     let oldMediaPlaylist;
+    let firstSegmentIndexToBePlayed;
 
     // do nothing if the src is falsey
     if (!src) {
@@ -432,7 +434,8 @@ export default class HlsHandler extends Component {
       }
 
       this.setupSourceBuffer_();
-      var firstSegmentIndexToBePlayed = this.setupFirstPlay();
+      firstSegmentIndexToBePlayed = this.setupFirstPlay();
+
       this.fillBuffer(firstSegmentIndexToBePlayed);
       this.tech_.trigger('loadedmetadata');
     });
@@ -588,7 +591,7 @@ export default class HlsHandler extends Component {
   setupFirstPlay() {
     let seekable;
     let media = this.playlists.media();
-    var firstSegmentIndex = 0;
+    let firstSegmentIndex = 0;
 
     // check that everything is ready to begin buffering
     // 1) the video is a live stream of unknown duration
@@ -609,18 +612,18 @@ export default class HlsHandler extends Component {
 
         // trigger the playlist loader to start "expired time"-tracking
         this.playlists.trigger('firstplay');
-      } else {
-        if (media !== undefined) {
-          var tailLength = parseInt(videojs.Hls.GOAL_BUFFER_LENGTH / media.targetDuration);
-  
-          if (tailLength < 3) {
-            tailLength = 3;
-          }
-  
-          firstSegmentIndex = media.segments.length - tailLength;
-          seekable = this.seekable();
-          this.tech_.setCurrentTime(seekable.start(0));
+      } else if (media) {
+        let tailLength = parseInt(
+          videojs.Hls.GOAL_BUFFER_LENGTH / media.targetDuration
+        , 10);
+
+        if (tailLength < 3) {
+          tailLength = 3;
         }
+
+        firstSegmentIndex = media.segments.length - tailLength;
+        seekable = this.seekable();
+        this.tech_.setCurrentTime(seekable.end(0));
       }
     }
     return (firstSegmentIndex > 0 ? firstSegmentIndex : 0);
@@ -1044,7 +1047,8 @@ export default class HlsHandler extends Component {
     // we have entered a state where we are fetching the same segment,
     // try to walk forward
     if (this.lastSegmentLoaded_ &&
-        this.playlistUriToUrl(this.lastSegmentLoaded_.uri) === this.playlistUriToUrl(segment.uri) &&
+        this.playlistUriToUrl(this.lastSegmentLoaded_.uri) ===
+        this.playlistUriToUrl(segment.uri) &&
         this.lastSegmentLoaded_.byterange === segment.byterange) {
       return this.fillBuffer(mediaIndex + 1);
     }
@@ -1397,7 +1401,12 @@ export default class HlsHandler extends Component {
     currentMediaIndex = segmentInfo.mediaIndex +
       (segmentInfo.mediaSequence - playlist.mediaSequence);
     currentBuffered = this.findBufferedRange_();
-    isEndOfStream = detectEndOfStream(playlist, this.mediaSource, currentMediaIndex, currentBuffered);
+    isEndOfStream = detectEndOfStream(
+        playlist,
+        this.mediaSource,
+        currentMediaIndex,
+        currentBuffered
+    );
 
     // if we switched renditions don't try to add segment timeline
     // information to the playlist
